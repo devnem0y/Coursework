@@ -1,34 +1,36 @@
 ﻿using UnityEngine;
 
-[System.Serializable]
 public class Engine
 {
-    [SerializeField]
     private Rigidbody2D body;
     private Transform transform;
-    [SerializeField]
     private Rigidbody2D axisFront = null, axisBack = null;
-    [SerializeField]
     private bool impulse;
-    [SerializeField, Range(0f, 25000f)]
     private float wheelForce;
-
-    [Space, SerializeField]
     private float maxSpeed;
     private float currentSpeed;
+    private float motorForce;
+    private float velocity = 0f;
+    private float acceleration = 0f;
 
-    [SerializeField, Range(0f, 2500f)]
-    private float motorForce; // ускорение
-
-    public Engine(Transform transform)
+    public Engine(Transform transform, Rigidbody2D body, Rigidbody2D axisFront, Rigidbody2D axisBack, bool impulse, float wheelForce, float maxSpeed, float motorForce)
     {
         this.transform = transform;
+        this.body = body;
+        this.axisFront = axisFront;
+        this.axisBack = axisBack;
+        this.impulse = impulse;
+        this.wheelForce = wheelForce;
+        this.maxSpeed = maxSpeed;
+        this.motorForce = motorForce;
     }
 
     public void Move(Wheel front, Wheel back, Controller controller)
     {
         Mobile(front, back, controller);
         Keyboard(front, back);
+
+        currentSpeed = body.velocity.x;
     }
 
     private void Mobile(Wheel wFront, Wheel wBack, Controller controller)
@@ -42,8 +44,8 @@ public class Engine
 
             if (Input.GetTouch(0).phase == TouchPhase.Ended)
             {
-                motorForce = 0f;
-                wheelForce = 0f;
+                velocity = 0f;
+                acceleration = 0f;
                 controller.StartPos = new Vector2(0f, 0f);
                 controller.EndPos = new Vector2(0f, 0f);
             }
@@ -71,8 +73,8 @@ public class Engine
         else
         {
             // Обнуляем скорость и силу
-            motorForce = 0f;
-            wheelForce = 0f;
+            velocity = 0f;
+            acceleration = 0f;
             controller.StartPos = new Vector2(0f, 0f);
             controller.EndPos = new Vector2(0f, 0f);
         }
@@ -86,8 +88,8 @@ public class Engine
         else
         {
             // Обнуляем скорость и силу
-            motorForce = 0f;
-            wheelForce = 0f;
+            velocity = 0f;
+            acceleration = 0f;
         }
     }
 
@@ -97,8 +99,6 @@ public class Engine
         // Обнуляем силу, которая поднимает колеса и устанавливаем скорость
 
         // Добавить значение body.drag
-
-        float velocity = 0f;
 
         if ((wFront.IsGrounded && !wBack.IsGrounded) || (!wFront.IsGrounded && wBack.IsGrounded)) // если одно любое колесо не на земле
         {
@@ -110,8 +110,6 @@ public class Engine
         }
         else velocity = 0f;
 
-        currentSpeed = body.velocity.x;
-
         if (currentSpeed >= maxSpeed) body.velocity = new Vector2(maxSpeed, body.velocity.y); // если скорость больше максимальной
         else
         {
@@ -121,7 +119,7 @@ public class Engine
 
     private void WheelUp(Wheel wheel, Rigidbody2D w)
     {
-        motorForce /= 1.25f;
+        velocity /= 0.75f;
 
         if (impulse)
         {
@@ -129,20 +127,18 @@ public class Engine
         }
         else
         {
-            float acceleration = 0f;
-
-            if (wheel.IsGrounded && w.velocity.y < 2f)
+            if (wheel.IsGrounded && w.velocity.y < 4f) // 2
             {
                 acceleration = wheelForce;
             }
-            else if (!wheel.IsGrounded && w.velocity.y < 2.5f)
+            else if (!wheel.IsGrounded && w.velocity.y < 4.5f) // 2.5
             {
                 acceleration = wheelForce;
             }
-            else if (!wheel.IsGrounded && w.velocity.y >= 2.2f)
+            else if (!wheel.IsGrounded && w.velocity.y >= 4.2f) // 2.2
             {
                 acceleration = 0f;
-                w.velocity = new Vector2(w.velocity.x, 2.2f);
+                w.velocity = new Vector2(w.velocity.x, 4.2f); // 2.2
             }
 
             w.AddForce(transform.up.normalized * acceleration);
